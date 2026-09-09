@@ -22,7 +22,6 @@
             font-size: 14px;
             z-index: 999;
         }
-        /* 非表示のキャンバス（ここでJSを使って絵を描き、ARのテクスチャにする） */
         #dynamic-canvas {
             display: none;
         }
@@ -32,7 +31,6 @@
 <body>
     <div id="tap-guide">画面を1回タップしてください</div>
 
-    <!-- 飛行機を描画するための隠しCanvas -->
     <canvas id="dynamic-canvas" width="512" height="256"></canvas>
 
     <a-scene
@@ -43,46 +41,42 @@
         device-orientation-permission-ui="enabled: false">
 
         <a-assets>
-            <!-- JavaScriptで描画したCanvasをテクスチャとして参照 -->
             <canvas id="airplane-canvas" width="512" height="256"></canvas>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- マーカー認識時に発火するターゲット -->
-        <a-entity mindar-image-target="targetIndex: 0" id="ar-target">
+        <!-- 
+            ★修正点: マーカー認識の親要素側にアニメーションを持たせる
+        -->
+        <a-entity 
+            mindar-image-target="targetIndex: 0" 
+            id="ar-target"
+            animation="property: position; from: 0 0 -0.5; to: 0 0.6 1.2; dur: 2000; easing: easeOutQuad; startEvents: targetFound;"
+            animation__scale="property: scale; from: 0.2 0.2 0.2; to: 1.2 1.2 1.2; dur: 2000; easing: easeOutQuad; startEvents: targetFound;">
             
-            <!-- 
-                JS製キャンバスを貼り付けた板（a-plane）を、
-                A-Frameのアニメーションで手前に飛び出させる
-            -->
+            <!-- 中身の plane はシンプルに配置する -->
             <a-plane
                 src="#airplane-canvas"
                 transparent="true"
                 width="1.2" height="0.6"
-                position="0 0 -0.5"
-                scale="0.2 0.2 0.2"
-                animation="property: position; from: 0 0 -0.5; to: 0 0.6 1.2; dur: 2000; easing: easeOutQuad; startEvents: targetFound;"
-                animation__scale="property: scale; from: 0.2 0.2 0.2; to: 1.2 1.2 1.2; dur: 2000; easing: easeOutQuad; startEvents: targetFound;">
+                position="0 0 0">
             </a-plane>
 
         </a-entity>
     </a-scene>
 
     <script>
-        // 1. ページ読み込み時にJavaScript（Canvas 2D API）で飛行機の絵を描画する
+        // Canvasに飛行機を描画
         window.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('airplane-canvas');
             const ctx = canvas.getContext('2d');
 
-            // 背景を透明クリア
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // --- ここからJavaScriptによる描画処理 ---
-            // 飛行機の本体（簡易的なデザイン、文字、アイコンなどを自由に描けます）
+            // 本体
             ctx.fillStyle = '#007aff';
             ctx.beginPath();
-            // ざっくりした飛行機の形を描画
             ctx.moveTo(100, 128);
             ctx.lineTo(400, 90);
             ctx.lineTo(450, 128);
@@ -90,7 +84,7 @@
             ctx.closePath();
             ctx.fill();
 
-            // 翼
+            // 翼（上）
             ctx.fillStyle = '#5ac8fa';
             ctx.beginPath();
             ctx.moveTo(250, 128);
@@ -98,20 +92,19 @@
             ctx.lineTo(280, 110);
             ctx.fill();
 
+            // 翼（下）
             ctx.beginPath();
             ctx.moveTo(250, 128);
             ctx.lineTo(200, 206);
             ctx.lineTo(280, 146);
             ctx.fill();
 
-            // 文字を入れることも可能
+            // 文字
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 28px sans-serif';
             ctx.fillText('✈ JAPAN AIR', 135, 138);
-            // ----------------------------------------
         });
 
-        // ガイドを消すタップ処理
         window.addEventListener('click', () => {
             const guide = document.getElementById('tap-guide');
             if (guide) guide.style.display = 'none';
