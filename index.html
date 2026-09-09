@@ -2,80 +2,82 @@
 <html>
 
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-	<style>
-		body {
-			margin: 0;
-			overflow: hidden;
-		}
-		/* スマホ画面上のタップ案内 */
-		#tap-guide {
-			position: absolute;
-			top: 20px;
-			left: 50%;
-			transform: translateX(-50%);
-			background: rgba(0, 0, 0, 0.7);
-			color: #fff;
-			padding: 8px 16px;
-			border-radius: 20px;
-			font-size: 14px;
-			z-index: 999;
-		}
-	</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        #tap-guide {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 999;
+        }
+    </style>
 </head>
 
 <body>
-	<div id="tap-guide">画面を1回タップしてください</div>
+    <div id="tap-guide">画面を1回タップしてください</div>
 
-	<a-scene
-		mindar-image="imageTargetSrc: ./targets.mind;"
-		color-space="sRGB"
-		renderer="colorManagement: true, physicallyCorrectLights"
-		vr-mode-ui="enabled: false"
-		device-orientation-permission-ui="enabled: false">
+    <a-scene
+        mindar-image="imageTargetSrc: ./targets.mind;"
+        color-space="sRGB"
+        renderer="colorManagement: true, physicallyCorrectLights"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
 
-		<a-assets>
-			<!-- ★重要：playsinline, webkit-playsinline, muted がスマホに必須 -->
-			<video id="spot-video" src="./test.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-			<img id="bubble-img" src="./hato.png" />
-		</a-assets>
+        <a-assets>
+            <video id="spot-video" src="./test.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+            <img id="bubble-img" src="./hato.png" />
+        </a-assets>
 
-		<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-		<a-entity mindar-image-target="targetIndex: 0">
-			<!-- ★重要：material="shader: flat" を追加（これがないと光が当たらず真っ黒になる） -->
-			<a-video
-				src="#spot-video"
-				width="1" height="0.6"
-				position="0 0 0"
-				material="shader: flat">
-			</a-video>
+        <a-entity mindar-image-target="targetIndex: 0">
+            <!-- 中央（マーカー画像の上）に重なる動画 -->
+            <a-video
+                src="#spot-video"
+                width="1" height="0.6"
+                position="0 0 0"
+                material="shader: flat">
+            </a-video>
 
-			<a-plane
-				src="#bubble-img"
-				transparent="true"
-				width="0.5" height="0.3"
-				position="0.4 0.3 0.1"
-				material="shader: flat">
-			</a-plane>
-		</a-entity>
-	</a-scene>
+            <!-- 
+                ★位置を右側に変更:
+                position="X Y Z"
+                ・X = 0.8（マーカー右端よりさらに右側）
+                ・Y = 0（上下中央） ※少し上にしたい場合は 0.2 など
+                ・Z = 0.1（画面から少し手前に浮かせる）
+            -->
+            <a-plane
+                src="#bubble-img"
+                transparent="true"
+                width="0.5" height="0.5"
+                position="0.8 0 0.1"
+                material="shader: flat">
+            </a-plane>
+        </a-entity>
+    </a-scene>
 
-	<script>
-		// 画面タップで確実に動画を再生させる
-		window.addEventListener('click', () => {
-			const v = document.getElementById('spot-video');
-			if (v) {
-				v.play();
-				// 音声を出す場合はコメント解除（最初は消音推奨）
-				// v.muted = false;
-			}
-			const guide = document.getElementById('tap-guide');
-			if (guide) guide.style.display = 'none';
-		});
-	</script>
+    <script>
+        window.addEventListener('click', () => {
+            const v = document.getElementById('spot-video');
+            if (v) {
+                v.play();
+            }
+            const guide = document.getElementById('tap-guide');
+            if (guide) guide.style.display = 'none';
+        });
+    </script>
 </body>
 
 </html>
