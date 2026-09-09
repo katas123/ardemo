@@ -36,7 +36,6 @@
         device-orientation-permission-ui="enabled: false">
 
         <a-assets>
-            <video id="spot-video" src="./test.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
             <img id="bubble-img" src="./hato.png" />
         </a-assets>
 
@@ -44,12 +43,7 @@
 
         <a-entity mindar-image-target="targetIndex: 0">
             <!-- 中央（マーカー画像の上）に重なる動画 -->
-            <a-video
-                src="#spot-video"
-                width="1" height="0.6"
-                position="0 0 0"
-                material="shader: flat">
-            </a-video>
+            
 
             <!-- 
                 ★位置を右側に変更:
