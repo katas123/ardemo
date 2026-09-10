@@ -11,161 +11,49 @@
 		body {
 			margin: 0;
 			overflow: hidden;
-			background-color: transparent;
-		}
-
-		/* 空間全体のフェードイン用UI */
-		.ar-ui-layer {
-			position: absolute;
-			top: 0;
-			left: 0;
-			width: 100vw;
-			height: 100vh;
-			pointer-events: none;
-			z-index: 10;
-			display: none;
-		}
-		.ar-ui-layer.active {
-			display: block;
 		}
 	</style>
 </head>
 
 <body>
-	<!-- A-Scene (MindAR ターゲット認識 ＆ 3D空間) -->
+	<!-- A-Scene (MindAR ターゲット認識) -->
 	<a-scene
-		id="ar-scene"
-		mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;"
+		mindar-image="imageTargetSrc: ./top.mind; maxTrack: 1;"
 		color-space="sRGB"
 		renderer="colorManagement: true, physicallyCorrectLights"
 		vr-mode-ui="enabled: false"
 		device-orientation-permission-ui="enabled: false">
 
+		<a-assets>
+			<!-- 読み込む動画ファイル（同じ階層に test.mp4 を配置してください） -->
+			<video id="test-video" src="./test.mp4" preload="auto" loop crossorigin="anonymous" playsinline webkit-playsinline></video>
+		</a-assets>
+
 		<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-		<!-- マーカー認識時に出現する3D空間グループ -->
+		<!-- マーカー認識時に動画を表示するエンティティ -->
 		<a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-			
-			<!-- ① 京都の道を歩く感を出す：両脇に並ぶ白い鳥居や町家の3Dオブジェクト群（奥から手前へ流れる） -->
-			<a-entity id="street-path" position="0 0 -5">
-				<!-- 左側の鳥居 / 柱のイメージ (白ボックス) -->
-				<a-box position="-1.2 0 0" width="0.1" height="2.0" depth="0.1" color="#FFFFFF" roughness="0.2"></a-box>
-				<a-box position="1.2 0 0" width="0.1" height="2.0" depth="0.1" color="#FFFFFF" roughness="0.2"></a-box>
-				<a-box position="0 0.9 0" width="2.6" height="0.12" depth="0.15" color="#FFFFFF" roughness="0.2"></a-box>
-			</a-entity>
-
-			<!-- ② 画面を覆うように巨大に通過するメインの白い飛行機（3Dモデル/オブジェクト） -->
-			<a-entity id="giant-plane" position="-3 2 -2" scale="2 2 2"
-				animation="property: position; from: -4 1.5 -1; to: 4 2.5 -4; dur: 3000; easing: easeOutQuad; startEvents: fly-start">
-				<!-- 機体本体 -->
-				<a-box width="0.3" height="0.2" depth="1.5" color="#FFFFFF"></a-box>
-				<!-- 翼 -->
-				<a-box position="0 0 0" width="1.8" height="0.05" depth="0.4" color="#FFFFFF"></a-box>
-				<!-- 尾翼 -->
-				<a-box position="0 0.15 -0.6" width="0.05" height="0.3" depth="0.3" color="#FFFFFF" rotation="-30 0 0"></a-box>
-			</a-entity>
-
-			<!-- ③ 世界の観光地やアイコンの3D立体オブジェクト群（次々に手前へ流れる） -->
-			<a-entity id="landmarks-3d" position="0 0 -4"></a-entity>
-
+			<!-- width / height で動画の縦横比を調整できます -->
+			<a-video src="#test-video" position="0 0 0" width="1" height="0.5625" rotation="0 0 0"></a-video>
 		</a-entity>
 	</a-scene>
-
-	<!-- UIレイヤー（必要に応じてスタイリッシュな枠や文字を置けるエリア） -->
-	<div id="ar-ui" class="ar-ui-layer"></div>
 
 	<script>
 		document.addEventListener("DOMContentLoaded", function() {
 			const targetEntity = document.querySelector("#ar-target");
-			const arUi = document.getElementById("ar-ui");
-			const giantPlane = document.getElementById("giant-plane");
-			const landmarksContainer = document.getElementById("landmarks-3d");
+			const videoElement = document.querySelector("#test-video");
 
-			let isTracking = false;
-			let sequenceTimer = null;
-
-			// 白の3Dプリミティブを組み合わせて作る「世界の名所・シンボル」のテンプレート
-			// （すべて純白の立体オブジェクトで構築）
-			function createWhiteLandmark(type) {
-				const wrapper = document.createElement("a-entity");
-				// 画面の左右ランダムな位置から奥に配置し、手前に近づいて通り過ぎるアニメーション
-				const randomX = (Math.random() - 0.5) * 3.0;
-				wrapper.setAttribute("position", `${randomX} 0 -6`);
-				wrapper.setAttribute("animation", `property: position; to: ${randomX * 1.5} -0.5 -1; dur: 3500; easing: linear;`);
-
-				if (type === "tower") {
-					// エッフェル塔 / 東京タワー風の三角フレーム構造
-					const tower = document.createElement("a-entity");
-					tower.innerHTML = `
-						<a-cone position="0 1 0" radius-bottom="0.4" radius-top="0.05" height="2.0" color="#FFFFFF" wireframe="true"></a-cone>
-						<a-box position="0 0 0" width="0.6" height="0.1" depth="0.6" color="#FFFFFF"></a-box>
-					`;
-					wrapper.appendChild(tower);
-				} else if (type === "mountain") {
-					// 富士山風の三角錐
-					const mt = document.createElement("a-entity");
-					mt.innerHTML = `
-						<a-cone position="0 0.5 0" radius-bottom="0.8" radius-top="0.1" height="1.2" color="#FFFFFF"></a-cone>
-					`;
-					wrapper.appendChild(mt);
-				} else {
-					// ピザの斜塔 / 建造物風の柱群
-					const bld = document.createElement("a-entity");
-					bld.innerHTML = `
-						<a-box position="0 0.6 0" width="0.5" height="1.5" depth="0.5" color="#FFFFFF" rotation="0 0 -8"></a-box>
-					`;
-					wrapper.appendChild(bld);
-				}
-
-				// 一定時間後にDOMから削除
-				setTimeout(() => {
-					wrapper.remove();
-				}, 3600);
-
-				return wrapper;
-			}
-
-			function triggerARSequence() {
-				if (!isTracking) return;
-
-				// 1. 巨大飛行機のアニメーションを再発火
-				giantPlane.emit("fly-start");
-
-				// 2. 飛行機の後に、白の3D観光地オブジェクトを連続して出現させる
-				setTimeout(() => {
-					const types = ["tower", "mountain", "structure"];
-					for (let i = 0; i < 3; i++) {
-						setTimeout(() => {
-							if (!isTracking) return;
-							const randomType = types[Math.floor(Math.random() * types.length)];
-							const obj = createWhiteLandmark(randomType);
-							landmarksContainer.appendChild(obj);
-						}, i * 900);
-					}
-				}, 500);
-			}
-
-			// マーカーを認識したとき
+			// マーカーを検出したら動画を再生
 			targetEntity.addEventListener("targetFound", () => {
-				isTracking = true;
-				arUi.classList.add("active");
-				triggerARSequence();
-
-				if (!sequenceTimer) {
-					sequenceTimer = setInterval(triggerARSequence, 4500);
-				}
+				videoElement.play().catch(e => {
+					console.log("Autoplay prevented:", e);
+				});
 			});
 
-			// マーカーを見失ったとき
+			// マーカーを見失ったら動画を一時停止・巻き戻し
 			targetEntity.addEventListener("targetLost", () => {
-				isTracking = false;
-				arUi.classList.remove("active");
-				landmarksContainer.innerHTML = "";
-
-				if (sequenceTimer) {
-					clearInterval(sequenceTimer);
-					sequenceTimer = null;
-				}
+				videoElement.pause();
+				videoElement.currentTime = 0;
 			});
 		});
 	</script>
