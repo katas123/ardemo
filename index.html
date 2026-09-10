@@ -49,6 +49,8 @@
 
 		.plane-group {
 			opacity: 0;
+			/* パスに沿って進行方向を向く設定 */
+			offset-rotate: auto;
 		}
 
 		.is-animating .flight-path {
@@ -117,7 +119,7 @@
 <body>
 	<!-- A-Scene (MindAR ターゲット認識) -->
 	<a-scene
-		mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;"
+		mindar-image="imageTargetSrc: ./top.mind; maxTrack: 1;"
 		color-space="sRGB"
 		renderer="colorManagement: true, physicallyCorrectLights"
 		vr-mode-ui="enabled: false"
@@ -153,10 +155,10 @@
 			let isTracking = false;
 			let sequenceInterval = null;
 
-			// 画面をダイナミックに横切る飛行ルート
+			// 画面をダイナミックに横切る飛行ルート（回転方向を指定）
 			const routes = [
-				{ path: "M -100,1400 Q 540,600 1180,400", rotate: "auto 35deg" },
-				{ path: "M -100,500 Q 540,1300 1180,1400", rotate: "auto -35deg" }
+				{ path: "M -100,1400 Q 540,600 1180,400", rotate: "auto 90deg" },
+				{ path: "M -100,500 Q 540,1300 1180,1400", rotate: "auto 90deg" }
 			];
 
 			// 世界の観光地・食べ物の白シルエットSVG集
@@ -194,6 +196,8 @@
 
 				const route = routes[Math.floor(Math.random() * routes.length)];
 				flightTrail.setAttribute("d", route.path);
+				
+				// パスと進行方向（角度）を適用
 				flightPlane.style.offsetPath = `path("${route.path}")`;
 				flightPlane.style.offsetRotate = route.rotate;
 
