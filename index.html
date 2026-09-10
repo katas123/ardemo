@@ -14,8 +14,8 @@
 			background-color: transparent;
 		}
 
-		/* 全画面演出ステージ */
-		.ar-stage {
+		/* 空間全体のフェードイン用UI */
+		.ar-ui-layer {
 			position: absolute;
 			top: 0;
 			left: 0;
@@ -24,214 +24,147 @@
 			pointer-events: none;
 			z-index: 10;
 			display: none;
-			overflow: hidden;
 		}
-
-		.ar-stage.active {
+		.ar-ui-layer.active {
 			display: block;
-		}
-
-		svg {
-			width: 100%;
-			height: 100%;
-		}
-
-		/* 巨大な飛行機と軌跡（白シルエット） */
-		.flight-path {
-			fill: none;
-			stroke: #ffffff;
-			stroke-width: 5px;
-			stroke-linecap: round;
-			stroke-dasharray: 2500;
-			stroke-dashoffset: 2500;
-			opacity: 0;
-		}
-
-		.plane-group {
-			opacity: 0;
-			/* パスに沿って進行方向を向く設定 */
-			offset-rotate: auto;
-		}
-
-		.is-animating .flight-path {
-			animation: drawPath 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-		}
-
-		.is-animating .plane-group {
-			animation: flyPlane 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-		}
-
-		.white-silhouette {
-			fill: #ffffff;
-			filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3));
-		}
-
-		/* 観光地や食べ物のシルエットが流れるアニメーション */
-		.silhouette-item {
-			position: absolute;
-			bottom: 20vh;
-			left: -300px;
-			fill: #ffffff;
-			filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3));
-			opacity: 0;
-			width: 180px;
-			height: 180px;
-			animation: panSilhouette 3.5s linear forwards;
-		}
-
-		@keyframes flyPlane {
-			0% { offset-distance: 0%; opacity: 0; transform: scale(2.0); }
-			10% { opacity: 1; }
-			90% { opacity: 1; }
-			100% { offset-distance: 100%; opacity: 0; transform: scale(2.0); }
-		}
-
-		@keyframes drawPath {
-			0% { stroke-dashoffset: 2500; opacity: 0; }
-			15% { opacity: 0.9; }
-			85% { opacity: 0.9; }
-			100% { stroke-dashoffset: 0; opacity: 0; }
-		}
-
-		@keyframes panSilhouette {
-			0% {
-				left: -250px;
-				opacity: 0;
-				transform: scale(0.9);
-			}
-			15% {
-				opacity: 1;
-				transform: scale(1.1);
-			}
-			85% {
-				opacity: 1;
-				transform: scale(1.1);
-			}
-			100% {
-				left: 105vw;
-				opacity: 0;
-				transform: scale(1.2);
-			}
 		}
 	</style>
 </head>
 
 <body>
-	<!-- A-Scene (MindAR ターゲット認識) -->
+	<!-- A-Scene (MindAR ターゲット認識 ＆ 3D空間) -->
 	<a-scene
-		mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;"
+		id="ar-scene"
+		mindar-image="imageTargetSrc: ./top.mind; maxTrack: 1;"
 		color-space="sRGB"
 		renderer="colorManagement: true, physicallyCorrectLights"
 		vr-mode-ui="enabled: false"
 		device-orientation-permission-ui="enabled: false">
 
 		<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-		<a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
+
+		<!-- マーカー認識時に出現する3D空間グループ -->
+		<a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+			
+			<!-- ① 京都の道を歩く感を出す：両脇に並ぶ白い鳥居や町家の3Dオブジェクト群（奥から手前へ流れる） -->
+			<a-entity id="street-path" position="0 0 -5">
+				<!-- 左側の鳥居 / 柱のイメージ (白ボックス) -->
+				<a-box position="-1.2 0 0" width="0.1" height="2.0" depth="0.1" color="#FFFFFF" roughness="0.2"></a-box>
+				<a-box position="1.2 0 0" width="0.1" height="2.0" depth="0.1" color="#FFFFFF" roughness="0.2"></a-box>
+				<a-box position="0 0.9 0" width="2.6" height="0.12" depth="0.15" color="#FFFFFF" roughness="0.2"></a-box>
+			</a-entity>
+
+			<!-- ② 画面を覆うように巨大に通過するメインの白い飛行機（3Dモデル/オブジェクト） -->
+			<a-entity id="giant-plane" position="-3 2 -2" scale="2 2 2"
+				animation="property: position; from: -4 1.5 -1; to: 4 2.5 -4; dur: 3000; easing: easeOutQuad; startEvents: fly-start">
+				<!-- 機体本体 -->
+				<a-box width="0.3" height="0.2" depth="1.5" color="#FFFFFF"></a-box>
+				<!-- 翼 -->
+				<a-box position="0 0 0" width="1.8" height="0.05" depth="0.4" color="#FFFFFF"></a-box>
+				<!-- 尾翼 -->
+				<a-box position="0 0.15 -0.6" width="0.05" height="0.3" depth="0.3" color="#FFFFFF" rotation="-30 0 0"></a-box>
+			</a-entity>
+
+			<!-- ③ 世界の観光地やアイコンの3D立体オブジェクト群（次々に手前へ流れる） -->
+			<a-entity id="landmarks-3d" position="0 0 -4"></a-entity>
+
+		</a-entity>
 	</a-scene>
 
-	<!-- 白シルエットのAR演出ステージ -->
-	<div id="ar-stage" class="ar-stage">
-		<svg viewBox="0 0 1080 1920" preserveAspectRatio="none">
-			<path id="flight-trail" class="flight-path" d="" pathLength="2500" />
-			<g id="flight-plane" class="plane-group">
-				<g transform="scale(6.0) translate(-12, -21)">
-					<path class="white-silhouette" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-				</g>
-			</g>
-		</svg>
-
-		<!-- 観光地や食べ物のシルエットが流れるコンテナ -->
-		<div id="silhouette-layer" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none;"></div>
-	</div>
+	<!-- UIレイヤー（必要に応じてスタイリッシュな枠や文字を置けるエリア） -->
+	<div id="ar-ui" class="ar-ui-layer"></div>
 
 	<script>
 		document.addEventListener("DOMContentLoaded", function() {
 			const targetEntity = document.querySelector("#ar-target");
-			const arStage = document.getElementById("ar-stage");
-			const flightTrail = document.getElementById("flight-trail");
-			const flightPlane = document.getElementById("flight-plane");
-			const silhouetteLayer = document.getElementById("silhouette-layer");
+			const arUi = document.getElementById("ar-ui");
+			const giantPlane = document.getElementById("giant-plane");
+			const landmarksContainer = document.getElementById("landmarks-3d");
 
 			let isTracking = false;
-			let sequenceInterval = null;
+			let sequenceTimer = null;
 
-			// 画面をダイナミックに横切る飛行ルート（回転方向を指定）
-			const routes = [
-				{ path: "M -100,1400 Q 540,600 1180,400", rotate: "auto 90deg" },
-				{ path: "M -100,500 Q 540,1300 1180,1400", rotate: "auto 90deg" }
-			];
+			// 白の3Dプリミティブを組み合わせて作る「世界の名所・シンボル」のテンプレート
+			// （すべて純白の立体オブジェクトで構築）
+			function createWhiteLandmark(type) {
+				const wrapper = document.createElement("a-entity");
+				// 画面の左右ランダムな位置から奥に配置し、手前に近づいて通り過ぎるアニメーション
+				const randomX = (Math.random() - 0.5) * 3.0;
+				wrapper.setAttribute("position", `${randomX} 0 -6`);
+				wrapper.setAttribute("animation", `property: position; to: ${randomX * 1.5} -0.5 -1; dur: 3500; easing: linear;`);
 
-			// 世界の観光地・食べ物の白シルエットSVG集
-			const silhouetteSvgs = [
-				// 1. エッフェル塔
-				`<svg viewBox="0 0 24 24"><path d="M11 2h2l2 6h-6l2-6zm-1 7h4l1 6h-6l1-6zm-2 7h8l1 6h-10l1-6z"/></svg>`,
-				// 2. 富士山
-				`<svg viewBox="0 0 24 24"><path d="M2 22l10-16 10 16H2zm10-12l-4 7h8l-4-7z"/></svg>`,
-				// 3. 東京タワー
-				`<svg viewBox="0 0 24 24"><path d="M11 2h2v3h-2V2zm-1 4h4l1.5 14h-7l1.5-14zm1 3h2v4h-2V9zm0 5h2v5h-2v-5z"/></svg>`,
-				// 4. ピザの斜塔
-				`<svg viewBox="0 0 24 24"><path d="M9 3l3-1 2 20h-4L9 3zm-1 5h6v2H8V8zm1 5h4v2H9v-2zm-1 5h6v2H8v-2z" transform="skewX(-8)"/></svg>`,
-				// 5. グルメ（ピザ・フードのイメージシルエット）
-				`<svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4l6.5 13h-13L12 6z"/></svg>`
-			];
+				if (type === "tower") {
+					// エッフェル塔 / 東京タワー風の三角フレーム構造
+					const tower = document.createElement("a-entity");
+					tower.innerHTML = `
+						<a-cone position="0 1 0" radius-bottom="0.4" radius-top="0.05" height="2.0" color="#FFFFFF" wireframe="true"></a-cone>
+						<a-box position="0 0 0" width="0.6" height="0.1" depth="0.6" color="#FFFFFF"></a-box>
+					`;
+					wrapper.appendChild(tower);
+				} else if (type === "mountain") {
+					// 富士山風の三角錐
+					const mt = document.createElement("a-entity");
+					mt.innerHTML = `
+						<a-cone position="0 0.5 0" radius-bottom="0.8" radius-top="0.1" height="1.2" color="#FFFFFF"></a-cone>
+					`;
+					wrapper.appendChild(mt);
+				} else {
+					// ピザの斜塔 / 建造物風の柱群
+					const bld = document.createElement("a-entity");
+					bld.innerHTML = `
+						<a-box position="0 0.6 0" width="0.5" height="1.5" depth="0.5" color="#FFFFFF" rotation="0 0 -8"></a-box>
+					`;
+					wrapper.appendChild(bld);
+				}
 
-			function spawnSilhouette() {
-				if (!isTracking) return;
-				const wrapper = document.createElement("div");
-				wrapper.className = "silhouette-item";
-				
-				const svgContent = silhouetteSvgs[Math.floor(Math.random() * silhouetteSvgs.length)];
-				wrapper.innerHTML = svgContent;
-
-				const randomBottom = Math.floor(Math.random() * 25) + 15;
-				wrapper.style.bottom = `${randomBottom}vh`;
-				wrapper.style.animationDuration = `${Math.random() * 1.0 + 3.2}s`;
-
-				silhouetteLayer.appendChild(wrapper);
-				setTimeout(() => wrapper.remove(), 4000);
-			}
-
-			function triggerSequence() {
-				if (!isTracking) return;
-
-				const route = routes[Math.floor(Math.random() * routes.length)];
-				flightTrail.setAttribute("d", route.path);
-				
-				// パスと進行方向（角度）を適用
-				flightPlane.style.offsetPath = `path("${route.path}")`;
-				flightPlane.style.offsetRotate = route.rotate;
-
-				arStage.classList.remove("is-animating");
-				void arStage.offsetWidth;
-				arStage.classList.add("is-animating");
-
-				// 飛行機の通過後に、観光地や食べ物のシルエットを連続して流す
+				// 一定時間後にDOMから削除
 				setTimeout(() => {
-					for (let i = 0; i < 3; i++) {
-						setTimeout(spawnSilhouette, i * 750);
-					}
-				}, 600);
+					wrapper.remove();
+				}, 3600);
+
+				return wrapper;
 			}
 
+			function triggerARSequence() {
+				if (!isTracking) return;
+
+				// 1. 巨大飛行機のアニメーションを再発火
+				giantPlane.emit("fly-start");
+
+				// 2. 飛行機の後に、白の3D観光地オブジェクトを連続して出現させる
+				setTimeout(() => {
+					const types = ["tower", "mountain", "structure"];
+					for (let i = 0; i < 3; i++) {
+						setTimeout(() => {
+							if (!isTracking) return;
+							const randomType = types[Math.floor(Math.random() * types.length)];
+							const obj = createWhiteLandmark(randomType);
+							landmarksContainer.appendChild(obj);
+						}, i * 900);
+					}
+				}, 500);
+			}
+
+			// マーカーを認識したとき
 			targetEntity.addEventListener("targetFound", () => {
 				isTracking = true;
-				arStage.classList.add("active");
-				triggerSequence();
+				arUi.classList.add("active");
+				triggerARSequence();
 
-				if (!sequenceInterval) {
-					sequenceInterval = setInterval(triggerSequence, 4500);
+				if (!sequenceTimer) {
+					sequenceTimer = setInterval(triggerARSequence, 4500);
 				}
 			});
 
+			// マーカーを見失ったとき
 			targetEntity.addEventListener("targetLost", () => {
 				isTracking = false;
-				arStage.classList.remove("active");
-				arStage.classList.remove("is-animating");
-				silhouetteLayer.innerHTML = "";
+				arUi.classList.remove("active");
+				landmarksContainer.innerHTML = "";
 
-				if (sequenceInterval) {
-					clearInterval(sequenceInterval);
-					sequenceInterval = null;
+				if (sequenceTimer) {
+					clearInterval(sequenceTimer);
+					sequenceTimer = null;
 				}
 			});
 		});
